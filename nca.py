@@ -13,14 +13,14 @@ import io
 
 def conv2d(grid, kernel):
     """Utility function to perform a simple per-channel depthwise 2d
-    convolution of a filter over a (B, H, W, C) tensor"""
+    convolution of a filter over a (B, C, H, W) tensor"""
     ch = grid.shape[-3]
-    return torch.conv2d(grid, kernel.repeat(ch, 1, 1, 1), padding=1, groups=ch)
+    return torch.conv2d(grid, kernel.to(grid.device).repeat(ch, 1, 1, 1), padding=1, groups=ch)
 
 class NCA(nn.Module):
     def __init__(self, ch=16):
         super().__init__()
-        self.sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / 8.0
+        self.sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
         self.sobel_y = self.sobel_x.T
 
         self.NCA_channels = ch
