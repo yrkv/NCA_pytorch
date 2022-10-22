@@ -166,7 +166,7 @@ def to_pil(grid, vmax=1.0):
 
 def to_bytes(grid, vmax=1.0, size=256, format='jpeg'):
     image = to_pil(grid, vmax=vmax)
-    image = image.resize((size, size), resample=Image.Resampling.NEAREST)
+    image = image.resize((size, size), resample=0)
     f = io.BytesIO()
     image.save(f, format)
     return f.getvalue()
