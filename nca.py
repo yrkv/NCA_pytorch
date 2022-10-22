@@ -20,7 +20,7 @@ def conv2d(grid, kernel):
 class NCA(nn.Module):
     def __init__(self, ch=16):
         super().__init__()
-        self.sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+        self.sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / 8.
         self.sobel_y = self.sobel_x.T
 
         self.NCA_channels = ch
