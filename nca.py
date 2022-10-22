@@ -149,7 +149,7 @@ class Environment:
 
 def to_pil(grid, vmax=1.0):
     if type(grid) is torch.Tensor:
-        grid = grid.detach().numpy()
+        grid = grid.cpu().detach().numpy()
 
     grid = (grid / vmax * 255).clip(0,255).astype(np.uint8)
     if len(grid.shape) == 2:
@@ -164,12 +164,12 @@ def to_pil(grid, vmax=1.0):
     raise TypeError("invalid image or something")
 
 
-def visualize(grid, w_im, vmax=1.0, size=256):
+def to_bytes(grid, vmax=1.0, size=256, format='jpeg'):
     image = to_pil(grid, vmax=vmax)
     image = image.resize((size, size), resample=Image.Resampling.NEAREST)
     f = io.BytesIO()
-    image.save(f, 'jpeg')
-    w_im.value = f.getvalue()
+    image.save(f, format)
+    return f.getvalue()
 
 
 #class TargetEnvironment(Environment):
