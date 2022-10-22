@@ -11,9 +11,6 @@ from PIL import Image
 import io
 
 
-SOBEL_X = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32) / 8.0
-SOBEL_Y = SOBEL_X.T
-
 def conv2d(grid, kernel):
     """Utility function to perform a simple per-channel depthwise 2d
     convolution of a filter over a (B, H, W, C) tensor"""
@@ -23,6 +20,8 @@ def conv2d(grid, kernel):
 class NCA(nn.Module):
     def __init__(self, ch=16):
         super().__init__()
+        self.sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / 8.0
+        self.sobel_y = self.sobel_x.T
 
         self.NCA_channels = ch
         self.main = nn.Sequential(
@@ -37,7 +36,7 @@ class NCA(nn.Module):
     
     def forward(self, grid):
         perception = torch.cat([
-            grid, conv2d(grid, SOBEL_X), conv2d(grid, SOBEL_Y)
+            grid, conv2d(grid, self.sobel_x), conv2d(grid, self.sobel_y)
         ], dim=-3)
         
         return self.main(perception)
@@ -102,7 +101,7 @@ class Environment:
         assert model.NCA_channels == self.NCA_channels
         update = model(grid)
         if self.update_p < 1:
-            update_mask = (torch.rand(64, 64) < self.update_p)
+            update_mask = (torch.rand(64, 64, device=grid.device) < self.update_p)
             update *= update_mask
         grid = grid + update
 
