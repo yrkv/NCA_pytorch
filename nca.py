@@ -154,7 +154,7 @@ class Environment:
         indices = np.random.choice(
                 range(len(self.input_samples)), batch_size).tolist()
         batch_in = self.input_samples[indices]
-        batch_out = self.output_samples[indices][:, :3]
+        batch_out = self.output_samples[indices][:, :4]
 
         return batch_in, batch_out
 
