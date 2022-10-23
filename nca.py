@@ -51,6 +51,31 @@ def load_emoji(emoji):
     return img
 
 
+def to_pil(grid, vmax=1.0, mode="RGB"):
+    if type(grid) is torch.Tensor:
+        grid = grid.cpu().detach().numpy()
+
+    grid = (grid / vmax * 255).clip(0,255).astype(np.uint8)
+    if mode == "L":
+        if len(grid.shape) == 2:
+            return Image.fromarray(grid, mode=mode)
+        if len(grid.shape) == 3 and grid.shape[0] == 1:
+            return Image.fromarray(grid[0], mode=mode)
+    if mode == "RGB":
+        return Image.fromarray(grid[:3, :, :].transpose(1,2,0), mode=mode)
+    if mode == "RGBA":
+        return Image.fromarray(grid[:4, :, :].transpose(1,2,0), mode=mode)
+
+    raise TypeError("invalid image or something")
+
+
+def to_bytes(grid, size=256, format='jpeg', **kwargs):
+    image = to_pil(grid, **kwargs)
+    image = image.resize((size, size), resample=0)
+    f = io.BytesIO()
+    image.save(f, format)
+    return f.getvalue()
+
 
 class Environment:
     """Utility class to handle growing and training NCA model(s).
@@ -96,7 +121,6 @@ class Environment:
         self.input_samples = torch.from_numpy(np.array(inputs)).to(device)
         self.output_samples = torch.from_numpy(np.array(outputs)).to(device)
 
-
     def iterate_NCA(self, model, grid):
         assert model.NCA_channels == self.NCA_channels
         update = model(grid)
@@ -111,7 +135,6 @@ class Environment:
             grid = grid*alive_mask
         return grid
 
-
     def train_episode(self, model, optimizer, its):
         grids, targets = self.get_sample()
 
@@ -124,15 +147,16 @@ class Environment:
         optimizer.step()
         return grids, loss.item()
 
+    def get_sample(self, batch_size=None):
+        if batch_size is None:
+            batch_size = self.batch_size
 
-    def get_sample(self):
         indices = np.random.choice(
-                range(len(self.input_samples)), self.batch_size).tolist()
+                range(len(self.input_samples)), batch_size).tolist()
         batch_in = self.input_samples[indices]
         batch_out = self.output_samples[indices][:, :3]
 
         return batch_in, batch_out
-
 
     def evaluate_results(self, grids, targets):
         k = targets.shape[1]
@@ -146,31 +170,23 @@ class Environment:
             raise TypeError("target cannot be None")
         return self.seed, self.target
 
+    def make_gif(self, model, duration, size):
+        grids, _ = self.get_sample(1)
+        frames = []
+        for _ in range(duration):
+            grid = self.iterate_NCA(model, grids).detach()
+            image = to_pil(grid[0, :4], vmax=1.0, mode="RGBA")
+            image = image.resize((size, size), resample=0)
+            frames.append(image)
 
-def to_pil(grid, vmax=1.0, mode="RGB"):
-    if type(grid) is torch.Tensor:
-        grid = grid.cpu().detach().numpy()
+        f = io.BytesIO()
+        frames[0].save(f, format='gif', append_images=frames[1:],
+                       save_all=True, duration=30, loop=0)
 
-    grid = (grid / vmax * 255).clip(0,255).astype(np.uint8)
-    if mode == "L":
-        if len(grid.shape) == 2:
-            return Image.fromarray(grid, mode=mode)
-        if len(grid.shape) == 3 and grid.shape[0] == 1:
-            return Image.fromarray(grid[0], mode=mode)
-    if mode == "RGB":
-        return Image.fromarray(grid[:3, :, :].transpose(1,2,0), mode=mode)
-    if mode == "RGBA":
-        return Image.fromarray(grid[:4, :, :].transpose(1,2,0), mode=mode)
-
-    raise TypeError("invalid image or something")
+        return f.getvalue()
 
 
-def to_bytes(grid, vmax=1.0, size=256, format='jpeg'):
-    image = to_pil(grid, vmax=vmax)
-    image = image.resize((size, size), resample=0)
-    f = io.BytesIO()
-    image.save(f, format)
-    return f.getvalue()
+
 
 
 #class TargetEnvironment(Environment):
