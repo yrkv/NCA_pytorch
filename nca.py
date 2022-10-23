@@ -147,19 +147,20 @@ class Environment:
         return self.seed, self.target
 
 
-def to_pil(grid, vmax=1.0):
+def to_pil(grid, vmax=1.0, mode="RGB"):
     if type(grid) is torch.Tensor:
         grid = grid.cpu().detach().numpy()
 
     grid = (grid / vmax * 255).clip(0,255).astype(np.uint8)
-    if len(grid.shape) == 2:
-        return Image.fromarray(grid, mode="L")
-
-    if len(grid.shape) == 3:
-        if grid.shape[0] == 1:
-            return Image.fromarray(grid[0], mode="L")
-        if 3 <= grid.shape[0] <= 4:
-            return Image.fromarray(grid[:3, :, :].transpose(1,2,0), mode="RGB")
+    if mode == "L":
+        if len(grid.shape) == 2:
+            return Image.fromarray(grid, mode=mode)
+        if len(grid.shape) == 3 and grid.shape[0] == 1:
+            return Image.fromarray(grid[0], mode=mode)
+    if mode == "RGB":
+        return Image.fromarray(grid[:3, :, :].transpose(1,2,0), mode=mode)
+    if mode == "RGBA":
+        return Image.fromarray(grid[:4, :, :].transpose(1,2,0), mode=mode)
 
     raise TypeError("invalid image or something")
 
