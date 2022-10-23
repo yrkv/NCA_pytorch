@@ -174,8 +174,8 @@ class Environment:
         grids, _ = self.get_sample(1)
         frames = []
         for _ in range(duration):
-            grid = self.iterate_NCA(model, grids).detach()
-            image = to_pil(grid[0, :4], vmax=1.0, mode="RGBA")
+            grids = self.iterate_NCA(model, grids).detach()
+            image = to_pil(grids[0, :4], vmax=1.0, mode="RGBA")
             image = image.resize((size, size), resample=0)
             frames.append(image)
 
@@ -184,7 +184,6 @@ class Environment:
                        save_all=True, duration=30, loop=0)
 
         return f.getvalue()
-
 
 
 
