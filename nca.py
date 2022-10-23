@@ -175,12 +175,12 @@ class Environment:
         frames = []
         for _ in range(duration):
             grids = self.iterate_NCA(model, grids).detach()
-            image = to_pil(grids[0, :4], vmax=1.0, mode="RGBA")
+            image = to_pil(grids[0, :4], vmax=1.0, mode="RGB")
             image = image.resize((size, size), resample=0)
             frames.append(image)
 
         f = io.BytesIO()
-        frames[0].save(f, format='gif', append_images=frames[1:],
+        frames[0].save(f, format='png', append_images=frames[1:],
                        save_all=True, duration=30, loop=0)
 
         return f.getvalue()
