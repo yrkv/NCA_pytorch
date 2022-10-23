@@ -89,7 +89,7 @@ class Environment:
     is all that's needed.
     """
     def __init__(self, update_p=0.5, life_threshold=0.1, examples_n=1,
-                 NCA_channels=16, size=64, device='cpu', batch_size=16,
+                 NCA_channels=16, size=64, device='cpu', batch_size=8,
                  loss_func=nn.MSELoss(reduction='mean'),
                  seed=None, target=None, # np.array (k, size, size) or an emoji
                  emoji_padding=8,
@@ -130,7 +130,7 @@ class Environment:
         grid = grid + update
 
         if self.life_threshold > 0:
-            alive_mask = (torch.max_pool2d(grid, kernel_size=3,
+            alive_mask = (torch.max_pool2d(grid[:, 3:4], kernel_size=3,
                                            stride=1, padding=1) > self.life_threshold)
             grid = grid*alive_mask
         return grid
