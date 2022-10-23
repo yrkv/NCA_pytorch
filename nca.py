@@ -101,7 +101,7 @@ class Environment:
         assert model.NCA_channels == self.NCA_channels
         update = model(grid)
         if self.update_p < 1:
-            update_mask = (torch.rand(64, 64, device=grid.device) < self.update_p)
+            update_mask = (torch.rand_like(grid[:, :1]) < self.update_p)
             update *= update_mask
         grid = grid + update
 
