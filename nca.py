@@ -11,17 +11,34 @@ from PIL import Image
 import io
 
 
-def conv2d(grid, kernel):
-    """Utility function to perform a simple per-channel depthwise 2d
-    convolution of a filter over a (B, C, H, W) tensor"""
-    ch = grid.shape[-3]
-    return torch.conv2d(grid, kernel.to(grid.device).repeat(ch, 1, 1, 1), padding=1, groups=ch)
+
+SOBEL_X = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / 8.
+SOBEL_Y = SOBEL_X.T
+
+#def conv2d(grid, kernel):
+#    """Utility function to perform a simple per-channel depthwise 2d
+#    convolution of a filter over a (B, C, H, W) tensor"""
+#    ch = grid.shape[-3]
+#    return torch.conv2d(grid, kernel.to(grid.device).repeat(ch, 1, 1, 1), padding=1, groups=ch)
+
+def conv2d(kernel, ch, padding_mode='circular'):
+    conv = nn.Conv2d(ch, ch, tuple(kernel.shape), stride=1, padding='same',
+                     groups=ch, bias=False, padding_mode=padding_mode)
+
+    conv.requires_grad_(False)
+    conv.weight.data *= 0
+    conv.weight.data += kernel
+
+    return conv
 
 class NCA(nn.Module):
-    def __init__(self, ch=16):
+    def __init__(self, ch=16, padding_mode='circular'):
         super().__init__()
-        self.sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / 8.
-        self.sobel_y = self.sobel_x.T
+        #self.sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / 8.
+        #self.sobel_y = self.sobel_x.T
+
+        self.sobel_x = conv2d(SOBEL_X, ch, padding_mode)
+        self.sobel_y = conv2d(SOBEL_Y, ch, padding_mode)
 
         self.NCA_channels = ch
         self.main = nn.Sequential(
@@ -36,7 +53,8 @@ class NCA(nn.Module):
     
     def forward(self, grid):
         perception = torch.cat([
-            grid, conv2d(grid, self.sobel_x), conv2d(grid, self.sobel_y)
+            #grid, conv2d(grid, self.sobel_x), conv2d(grid, self.sobel_y)
+            grid, self.sobel_x(grid), self.sobel_y(grid)
         ], dim=-3)
         
         return self.main(perception)
@@ -154,7 +172,7 @@ class Environment:
         indices = np.random.choice(
                 range(len(self.input_samples)), batch_size).tolist()
         batch_in = self.input_samples[indices]
-        batch_out = self.output_samples[indices][:, :4]
+        batch_out = self.output_samples[indices]
 
         return batch_in, batch_out
 
@@ -163,6 +181,8 @@ class Environment:
         return self.loss_func(grids[:, :k], targets).mean()
 
     def create_example(self):
+        """Return an input/output pair, if applicable.
+        """
         # return (input, output)
         #   input: np array (NCA_channels, size, size) float32
         #   output: np array (k, size, size) float32
