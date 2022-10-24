@@ -21,7 +21,7 @@ SOBEL_Y = SOBEL_X.T
 #    ch = grid.shape[-3]
 #    return torch.conv2d(grid, kernel.to(grid.device).repeat(ch, 1, 1, 1), padding=1, groups=ch)
 
-def conv2d(kernel, ch, padding_mode='circular'):
+def conv2d(kernel, ch, padding_mode='zeros'):
     conv = nn.Conv2d(ch, ch, tuple(kernel.shape), stride=1, padding='same',
                      groups=ch, bias=False, padding_mode=padding_mode)
 
@@ -32,7 +32,7 @@ def conv2d(kernel, ch, padding_mode='circular'):
     return conv
 
 class NCA(nn.Module):
-    def __init__(self, ch=16, padding_mode='circular'):
+    def __init__(self, ch=16, padding_mode='zeros'):
         super().__init__()
         #self.sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / 8.
         #self.sobel_y = self.sobel_x.T
