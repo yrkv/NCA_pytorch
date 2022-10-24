@@ -110,7 +110,7 @@ class Environment:
                  NCA_channels=16, size=64, device='cpu', batch_size=8,
                  loss_func=nn.MSELoss(reduction='mean'),
                  seed=None, target=None, # np.array (k, size, size) or an emoji
-                 emoji_padding=8,
+                 emoji_padding=8, grad_clip=True,
                  ):
         self.update_p = update_p
         self.life_threshold = life_threshold
@@ -119,6 +119,7 @@ class Environment:
         self.size = size
         self.batch_size = batch_size
         self.loss_func = loss_func
+        self.grad_clip = grad_clip
 
         self.seed = seed
         if self.seed is None:
@@ -161,6 +162,8 @@ class Environment:
             grids = self.iterate_NCA(model, grids)
         
         loss = self.evaluate_results(grids, targets)
+        if self.grad_clip:
+            torch.nn.utils.clip_grad.clip_grad_norm_(model.parameters(), 1.0)
         loss.backward()
         optimizer.step()
         return grids, loss.item()
